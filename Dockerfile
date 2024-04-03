@@ -1,18 +1,14 @@
-FROM golang:latest AS build
+FROM golang:latest
 
 WORKDIR /go/src/app
 
+COPY go.sum .
 COPY go.mod .
 RUN go mod download
 
 COPY cmd/ cmd/
 COPY internal/ internal/
+COPY pkg/ pkg/
 RUN go build -o /go/bin/app ./cmd/app
 
-FROM golang:latest AS app
-
-WORKDIR /go/bin
-
-COPY --from=build /go/bin/app /go/bin/app
-
-CMD ["./app"]
+CMD ["/go/bin/app"]

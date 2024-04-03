@@ -1,7 +1,18 @@
-PROJECT_NAME = apple-health-data-workflow
-
 build:
-	docker build -t $(PROJECT_NAME) .
+	docker build -t apple-health-data-workflow .
 
 run: build
-	docker run $(PROJECT_NAME)
+	trap "make stop" EXIT; docker compose run app
+
+stop:
+	docker compose down
+
+integration-tests: build
+	trap "make stop" EXIT; make integration-tests-run
+
+integration-tests-run:
+	docker compose run \
+		-v $(PWD)/test/integration:/go/src/app/test \
+		app go test ./test/...
+
+tests: integration-tests
