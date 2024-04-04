@@ -1,4 +1,4 @@
-package ingester
+package controller
 
 import (
 	"database/sql/driver"

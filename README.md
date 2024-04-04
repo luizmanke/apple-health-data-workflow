@@ -14,6 +14,14 @@ This project aims to extract, transform and load Apple health data to ease furth
 make run
 ```
 
+4. Interact with the application on your browser http://localhost:8080/.
+
+5. Close the application:
+
+```sh
+make stop
+```
+
 ## Development
 
 Run tests:

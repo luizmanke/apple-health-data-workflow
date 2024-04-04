@@ -1,14 +1,12 @@
 package ingester_test
 
 import (
+	"apple-health-data-workflow/internal/controller"
 	"apple-health-data-workflow/internal/ingester"
 	"apple-health-data-workflow/pkg/testkit"
-	"database/sql"
 	"encoding/csv"
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	_ "github.com/lib/pq"
@@ -20,8 +18,8 @@ type csvFile struct {
 }
 
 type fixtures struct {
-	sourceStorage       ingester.SourceStorage
-	destinationDatabase ingester.DestinationDatabase
+	sourceStorage       controller.Storage
+	destinationDatabase controller.Database
 }
 
 func TestEveryAppleHealthSummaryColumnMustBeIngestedIntoTheDatabase(t *testing.T) {
@@ -38,8 +36,8 @@ func TestEveryAppleHealthSummaryColumnMustBeIngestedIntoTheDatabase(t *testing.T
 		fixtures.destinationDatabase,
 	)
 
-	ingestedData := readSummaryDataFromDatabaseByDates(t, []string{"2024-01-01T00:00:00Z"})
-	testkit.AssertEqual(t, ingestedData, []ingester.Summary{appleHealthSummaryDataWithAllColumns()})
+	ingestedData := getSummaryDataFromDatabaseByDates(t, []string{"2024-01-01T00:00:00Z"})
+	testkit.AssertEqual(t, ingestedData, []controller.Summary{appleHealthSummaryDataWithAllColumns()})
 }
 
 func TestMultipleAppleHealthSummaryFilesMustBeIngestedIntoTheDatabase(t *testing.T) {
@@ -68,7 +66,7 @@ func TestMultipleAppleHealthSummaryFilesMustBeIngestedIntoTheDatabase(t *testing
 		fixtures.destinationDatabase,
 	)
 
-	ingestedData := readSummaryDataFromDatabaseByDates(
+	ingestedData := getSummaryDataFromDatabaseByDates(
 		t,
 		[]string{
 			"2024-01-02T00:00:00Z",
@@ -79,7 +77,7 @@ func TestMultipleAppleHealthSummaryFilesMustBeIngestedIntoTheDatabase(t *testing
 	testkit.AssertEqual(
 		t,
 		ingestedData,
-		[]ingester.Summary{
+		[]controller.Summary{
 			{Date: "2024-01-02T00:00:00Z"},
 			{Date: "2024-01-03T00:00:00Z"},
 			{Date: "2024-01-04T00:00:00Z"},
@@ -113,11 +111,11 @@ func TestOnlyTheFirstAppleHealthSummaryWithTheSameDateMustBePersistedInTheDataba
 		fixtures.destinationDatabase,
 	)
 
-	ingestedData := readSummaryDataFromDatabaseByDates(t, []string{"2024-01-06T00:00:00Z"})
+	ingestedData := getSummaryDataFromDatabaseByDates(t, []string{"2024-01-06T00:00:00Z"})
 	testkit.AssertEqual(
 		t,
 		ingestedData,
-		[]ingester.Summary{
+		[]controller.Summary{
 			{Date: "2024-01-06T00:00:00Z", ActiveEnergy: 1.0},
 		},
 	)
@@ -128,10 +126,10 @@ func setUpTest(t *testing.T, csvFiles []csvFile) fixtures {
 	testDir := createTestDirectory(t)
 	createCSVFilesInStorage(t, testDir, csvFiles)
 
-	sourceStorage := ingester.SourceStorage{
+	sourceStorage := controller.Storage{
 		Directory: testDir,
 	}
-	destinationDatabase := ingester.DestinationDatabase{
+	destinationDatabase := controller.Database{
 		User:     "username",
 		Password: "password",
 		Host:     "warehouse",
@@ -330,8 +328,8 @@ func appleHealthSummaryFileWithAllColumns() csvFile {
 	}
 }
 
-func appleHealthSummaryDataWithAllColumns() ingester.Summary {
-	return ingester.Summary{
+func appleHealthSummaryDataWithAllColumns() controller.Summary {
+	return controller.Summary{
 		Date:                               "2024-01-01T00:00:00Z",
 		ActiveEnergy:                       1.0,
 		AlcoholConsumption:                 1.0,
@@ -466,183 +464,28 @@ func appleHealthSummaryDataWithAllColumns() ingester.Summary {
 	}
 }
 
-func readSummaryDataFromDatabaseByDates(t *testing.T, dates []string) []ingester.Summary {
+func getSummaryDataFromDatabaseByDates(t *testing.T, desiredDates []string) []controller.Summary {
 
-	db := connectToTheDatabase(t)
-	defer db.Close()
-
-	quoted_dates := []string{}
-	for _, date := range dates {
-		quoted_dates = append(quoted_dates, "'"+date+"'")
+	dbConfig := controller.Database{
+		User:     "username",
+		Password: "password",
+		Host:     "warehouse",
+		Port:     "5432",
+		Database: "appleHealth",
 	}
 
-	query := fmt.Sprintf(`
-		SELECT * FROM summary
-		WHERE date IN (%s)
-	`, strings.Join(quoted_dates, ","))
-
-	rows, err := db.Query(query)
+	summaries, err := controller.GetSummaryDataFromDatabase(dbConfig)
 	testkit.AssertNoError(t, err)
-	defer rows.Close()
 
-	summaries := []ingester.Summary{}
-	for rows.Next() {
-
-		summary := ingester.Summary{}
-		err := rows.Scan(
-			&summary.Date,
-			&summary.ActiveEnergy,
-			&summary.AlcoholConsumption,
-			&summary.AppleExerciseTime,
-			&summary.AppleMoveTime,
-			&summary.AppleSleepingWristTemperature,
-			&summary.AppleStandHour,
-			&summary.AppleStandTime,
-			&summary.AtrialFibrillationBurden,
-			&summary.BasalBodyTemperature,
-			&summary.BloodAlcoholContent,
-			&summary.BloodGlucose,
-			&summary.BloodOxygenSaturation,
-			&summary.BloodPressureSystolic,
-			&summary.BloodPressureDiastolic,
-			&summary.BodyFatPercentage,
-			&summary.BodyMassIndex,
-			&summary.BodyTemperature,
-			&summary.Caffeine,
-			&summary.Calcium,
-			&summary.Carbohydrates,
-			&summary.CardioRecovery,
-			&summary.Chloride,
-			&summary.Chromium,
-			&summary.Copper,
-			&summary.CyclingCadence,
-			&summary.CyclingDistance,
-			&summary.CyclingFunctionalThresholdPower,
-			&summary.CyclingPower,
-			&summary.CyclingSpeed,
-			&summary.DietaryBiotin,
-			&summary.DietaryCholesterol,
-			&summary.DietaryEnergy,
-			&summary.DietarySugar,
-			&summary.DistanceDownhillSnowSports,
-			&summary.ElectrodermalActivity,
-			&summary.EnvironmentalAudioExposure,
-			&summary.Fiber,
-			&summary.FlightsClimbed,
-			&summary.Folate,
-			&summary.ForcedExpiratoryVolume,
-			&summary.ForcedVitalCapacity,
-			&summary.Handwashing,
-			&summary.HeadphoneAudioExposure,
-			&summary.HeartRateMin,
-			&summary.HeartRateMax,
-			&summary.HeartRateAvg,
-			&summary.HeartRateVariability,
-			&summary.Height,
-			&summary.HighHeartRateNotificationsMin,
-			&summary.HighHeartRateNotificationsMax,
-			&summary.HighHeartRateNotificationsAvg,
-			&summary.InhalerUsage,
-			&summary.InsulinDelivery,
-			&summary.Iodine,
-			&summary.Iron,
-			&summary.IrregularHeartRateNotificationsMin,
-			&summary.IrregularHeartRateNotificationsMax,
-			&summary.IrregularHeartRateNotificationsAvg,
-			&summary.LeanBodyMass,
-			&summary.LowHeartRateNotificationsMin,
-			&summary.LowHeartRateNotificationsMax,
-			&summary.LowHeartRateNotificationsAvg,
-			&summary.Magnesium,
-			&summary.Manganese,
-			&summary.MindfulMinutes,
-			&summary.Molybdenum,
-			&summary.MonounsaturatedFat,
-			&summary.Niacin,
-			&summary.NumberOfTimesFallen,
-			&summary.PantothenicAcid,
-			&summary.PeakExpiratoryFlowRate,
-			&summary.PeripheralPerfusionIndex,
-			&summary.PhysicalEffort,
-			&summary.PolyunsaturatedFat,
-			&summary.Potassium,
-			&summary.Protein,
-			&summary.PushCount,
-			&summary.RespiratoryRate,
-			&summary.RestingEnergy,
-			&summary.RestingHeartRate,
-			&summary.Riboflavin,
-			&summary.RunningGroundContactTime,
-			&summary.RunningPower,
-			&summary.RunningSpeed,
-			&summary.RunningStride,
-			&summary.RunningVerticalOscillation,
-			&summary.SaturatedFat,
-			&summary.Selenium,
-			&summary.SexualActivityUnspecified,
-			&summary.SexualActivityProtectionUsed,
-			&summary.SexualActivityProtectionNotUsed,
-			&summary.SixMinuteWalkingTestDistance,
-			&summary.SleepAnalysisAsleep,
-			&summary.SleepAnalysisInBed,
-			&summary.SleepAnalysisCore,
-			&summary.SleepAnalysisDeep,
-			&summary.SleepAnalysisREM,
-			&summary.SleepAnalysisAwake,
-			&summary.Sodium,
-			&summary.StairSpeedDown,
-			&summary.StairSpeedUp,
-			&summary.StepCount,
-			&summary.SwimmingDistance,
-			&summary.SwimmingStrokeCount,
-			&summary.Thiamin,
-			&summary.TimeInDaylight,
-			&summary.Toothbrushing,
-			&summary.TotalFat,
-			&summary.UVExposure,
-			&summary.UnderwaterDepth,
-			&summary.UnderwaterTemperature,
-			&summary.VO2Max,
-			&summary.VitaminA,
-			&summary.VitaminB12,
-			&summary.VitaminB6,
-			&summary.VitaminC,
-			&summary.VitaminD,
-			&summary.VitaminE,
-			&summary.VitaminK,
-			&summary.WaistCircumference,
-			&summary.WalkingPlusRunningDistance,
-			&summary.WalkingAsymmetryPercentage,
-			&summary.WalkingDoubleSupportPercentage,
-			&summary.WalkingHeartRateAverage,
-			&summary.WalkingSpeed,
-			&summary.WalkingStepLength,
-			&summary.Water,
-			&summary.WeightDividedByBodyMass,
-			&summary.WheelchairDistance,
-			&summary.Zinc,
-		)
-		testkit.AssertNoError(t, err)
-
-		summaries = append(summaries, summary)
+	filteredSummaries := []controller.Summary{}
+	for _, summary := range summaries {
+		for _, date := range desiredDates {
+			if summary.Date == date {
+				filteredSummaries = append(filteredSummaries, summary)
+				break
+			}
+		}
 	}
 
-	return summaries
-}
-
-func connectToTheDatabase(t *testing.T) *sql.DB {
-
-	dbInfo := fmt.Sprintln(
-		"user=username",
-		"password=password",
-		"host=warehouse",
-		"port=5432",
-		"dbname=appleHealth",
-		"sslmode=disable",
-	)
-
-	db, err := sql.Open("postgres", dbInfo)
-	testkit.AssertNoError(t, err)
-
-	return db
+	return filteredSummaries
 }

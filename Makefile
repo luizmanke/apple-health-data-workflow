@@ -2,7 +2,7 @@ build:
 	docker build -t apple-health-data-workflow .
 
 run: build
-	trap "make stop" EXIT; docker compose run app
+	docker compose up frontend -d
 
 stop:
 	docker compose down
@@ -12,7 +12,7 @@ integration-tests: build
 
 integration-tests-run:
 	docker compose run \
-		-v $(PWD)/test/integration:/go/src/app/test \
-		app go test ./test/...
+		-v $(PWD)/test/integration:/go/src/test:ro \
+		frontend go test ./test/...
 
 tests: integration-tests

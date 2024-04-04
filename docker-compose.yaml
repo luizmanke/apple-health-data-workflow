@@ -2,8 +2,23 @@ version: "3"
 
 services:
 
-  app:
+  frontend:
     image: apple-health-data-workflow:latest
+    command: /go/bin/frontend
+    environment:
+      WAREHOUSE_USER: username
+      WAREHOUSE_PASSWORD: password
+      WAREHOUSE_HOST: warehouse
+      WAREHOUSE_PORT: 5432
+      WAREHOUSE_DATABASE: appleHealth
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
+  backend:
+    image: apple-health-data-workflow:latest
+    command: /go/bin/backend
     environment:
       INGESTER_SOURCE_DIRECTORY: /data
       INGESTER_DESTINATION_USER: username

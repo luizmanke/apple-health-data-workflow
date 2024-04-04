@@ -2,6 +2,7 @@ package testkit
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -14,5 +15,11 @@ func AssertNoError(t *testing.T, err error) {
 func AssertEqual(t *testing.T, actual any, expected any) {
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("%v is not equal to %v", actual, expected)
+	}
+}
+
+func AssertContians(t *testing.T, str string, substr string) {
+	if !strings.Contains(str, substr) {
+		t.Fatalf("String does not contain %s", substr)
 	}
 }
