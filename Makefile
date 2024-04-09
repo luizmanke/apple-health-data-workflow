@@ -1,8 +1,11 @@
 build:
 	docker build -t apple-health-data-workflow .
 
-run: build
+start: build
 	docker compose up frontend -d
+
+logs:
+	docker compose logs --follow frontend backend
 
 stop:
 	docker compose down

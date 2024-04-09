@@ -23,7 +23,7 @@ func main() {
 	})
 
 	addr := ":8080"
-	log.Printf("Starting server on %s\n", addr)
+	log.Printf("Starting web application on %s\n", addr)
 
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal(err)

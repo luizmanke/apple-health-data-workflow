@@ -3,12 +3,10 @@ package main
 import (
 	"apple-health-data-workflow/internal/controller"
 	"apple-health-data-workflow/internal/ingester"
-	"fmt"
 	"os"
 )
 
 func main() {
-	fmt.Println("App started!")
 
 	sourceStorage := controller.Storage{
 		Directory: os.Getenv("INGESTER_SOURCE_DIRECTORY"),
@@ -21,6 +19,5 @@ func main() {
 		Database: os.Getenv("INGESTER_DESTINATION_DATABASE"),
 	}
 
-	fmt.Println("Ingesting Apple Health summary data...")
 	ingester.IngestAppleHealthSummaryData(sourceStorage, destinationDatabase)
 }
