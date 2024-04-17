@@ -134,7 +134,7 @@ func setUpTest(t *testing.T, csvFiles []csvFile) fixtures {
 		Password: "password",
 		Host:     "warehouse",
 		Port:     "5432",
-		Database: "appleHealth",
+		Database: "apple_health",
 	}
 
 	return fixtures{
@@ -471,7 +471,7 @@ func getSummaryDataFromDatabaseByDates(t *testing.T, desiredDates []string) []co
 		Password: "password",
 		Host:     "warehouse",
 		Port:     "5432",
-		Database: "appleHealth",
+		Database: "apple_health",
 	}
 
 	summaries, err := controller.GetSummaryDataFromDatabase(dbConfig)

@@ -18,7 +18,7 @@ func TestSummaryHandlerMustDisplayDropdownAndLineChart(t *testing.T) {
 		Password: "password",
 		Host:     "warehouse",
 		Port:     "5432",
-		Database: "appleHealth",
+		Database: "apple_health",
 	}
 
 	webapp.DisplaySummaryChart(responseRecorder, dbConfig)

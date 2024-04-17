@@ -1,0 +1,4 @@
+[environments.default]
+url = "jdbc:postgresql://warehouse:5432/apple_health"
+user = "username"
+password = "password"

@@ -10,7 +10,7 @@ services:
       WAREHOUSE_PASSWORD: password
       WAREHOUSE_HOST: warehouse
       WAREHOUSE_PORT: 5432
-      WAREHOUSE_DATABASE: appleHealth
+      WAREHOUSE_DATABASE: apple_health
     ports:
       - "8080:8080"
     depends_on:
@@ -25,9 +25,19 @@ services:
       INGESTER_DESTINATION_PASSWORD: password
       INGESTER_DESTINATION_HOST: warehouse
       INGESTER_DESTINATION_PORT: 5432
-      INGESTER_DESTINATION_DATABASE: appleHealth
+      INGESTER_DESTINATION_DATABASE: apple_health
     volumes:
       - ${PWD}/data:/data:ro
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+
+  migration:
+    image: redgate/flyway
+    command: migrate
+    volumes:
+      - ${PWD}/migrations/flyway.toml:/flyway/conf/flyway.toml:ro
+      - ${PWD}/migrations/sql:/flyway/sql:ro
     depends_on:
       warehouse:
         condition: service_healthy
@@ -35,7 +45,7 @@ services:
   warehouse:
     image: postgres:16.2
     environment:
-      POSTGRES_DB: appleHealth
+      POSTGRES_DB: apple_health
       POSTGRES_USER: username
       POSTGRES_PASSWORD: password
     expose:
