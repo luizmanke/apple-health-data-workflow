@@ -16,6 +16,6 @@ integration-tests: build
 integration-tests-run:
 	docker compose run \
 		-v $(PWD)/test/integration:/go/src/test:ro \
-		frontend go test ./test/...
+		backend go test ./test/...
 
 tests: integration-tests

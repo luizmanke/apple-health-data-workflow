@@ -44,6 +44,10 @@ func DisplaySummaryChart(w http.ResponseWriter, database controller.Database) {
 
 func createDropdownOptions(summaries []controller.Summary) []DropdownOption {
 
+	if len(summaries) == 0 {
+		return []DropdownOption{}
+	}
+
 	xValues := []string{}
 	for _, summary := range summaries {
 		xValues = append(xValues, summary.Date)

@@ -14,7 +14,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - backend
+      backend:
+        condition: service_completed_successfully
 
   backend:
     image: apple-health-data-workflow:latest
@@ -26,11 +27,40 @@ services:
       INGESTER_DESTINATION_HOST: warehouse
       INGESTER_DESTINATION_PORT: 5432
       INGESTER_DESTINATION_DATABASE: apple_health
+      QUEUE_SERVER: datahub:9092
+      QUEUE_TOPIC: apple-health.summary
     volumes:
       - ${PWD}/data:/data:ro
     depends_on:
+      datahub:
+        condition: service_healthy
       migration:
         condition: service_completed_successfully
+
+  datahub:
+    image: confluentinc/cp-kafka:7.6.1
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://datahub:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_ZOOKEEPER_CONNECT: datahub_manager:2181
+    expose:
+      - 9092
+    healthcheck:
+      test: nc -z localhost 9092 || exit -1
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - datahub_manager
+
+  datahub_manager:
+    image: confluentinc/cp-zookeeper:7.6.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    expose:
+      - 2181
 
   migration:
     image: redgate/flyway
