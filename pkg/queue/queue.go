@@ -1,7 +1,7 @@
 package queue
 
 import (
-	"apple-health-data-workflow/internal/controller"
+	"apple-health-data-workflow/pkg/models"
 	"encoding/json"
 	"log"
 	"time"
@@ -16,7 +16,7 @@ type QueueConfig struct {
 
 func SendAppleHealthSummaryDataToQueue(
 	queueConfig QueueConfig,
-	summaries []controller.Summary,
+	summaries []models.Summary,
 ) error {
 
 	producer, err := kafka.NewProducer(
@@ -39,7 +39,7 @@ func SendAppleHealthSummaryDataToQueue(
 
 func ReadAppleHealthSummaryDataFromQueue(
 	queueConfig QueueConfig,
-) ([]controller.Summary, error) {
+) ([]models.Summary, error) {
 
 	consumer, err := kafka.NewConsumer(
 		&kafka.ConfigMap{
@@ -70,7 +70,7 @@ func ReadAppleHealthSummaryDataFromQueue(
 	return summaries, nil
 }
 
-func publishSummaryMessages(kafkaProducer *kafka.Producer, topic string, summaries []controller.Summary) error {
+func publishSummaryMessages(kafkaProducer *kafka.Producer, topic string, summaries []models.Summary) error {
 
 	deliveryChannel := make(chan kafka.Event, 1)
 
@@ -105,19 +105,19 @@ func publishSummaryMessages(kafkaProducer *kafka.Producer, topic string, summari
 	return nil
 }
 
-func readSummaryMessages(consumer *kafka.Consumer) ([]controller.Summary, error) {
+func readSummaryMessages(consumer *kafka.Consumer) ([]models.Summary, error) {
 
 	numberOfAvailableMessages, err := getNumberOfAvailableMessages(consumer)
 	if err != nil {
 		return nil, err
 	}
 
-	summaries := []controller.Summary{}
+	summaries := []models.Summary{}
 	for i := 0; i < numberOfAvailableMessages; i++ {
 		message, err := consumer.ReadMessage(100 * time.Millisecond)
 		if err == nil {
 
-			summary := controller.Summary{}
+			summary := models.Summary{}
 			err := json.Unmarshal(message.Value, &summary)
 			if err != nil {
 				return nil, err

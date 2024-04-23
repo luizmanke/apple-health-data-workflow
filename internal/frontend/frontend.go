@@ -1,7 +1,8 @@
-package webapp
+package frontend
 
 import (
-	"apple-health-data-workflow/internal/controller"
+	"apple-health-data-workflow/pkg/database"
+	"apple-health-data-workflow/pkg/models"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -17,9 +18,9 @@ type DropdownOption struct {
 	Y    []float32
 }
 
-func DisplaySummaryChart(w http.ResponseWriter, database controller.Database) {
+func DisplaySummaryChart(w http.ResponseWriter, databaseConfig database.DatabaseConfig) {
 
-	summaries, err := controller.GetSummaryDataFromDatabase(database)
+	summaries, err := database.GetSummaryDataFromDatabase(databaseConfig)
 	if err != nil {
 		message := fmt.Sprintf("Failed to get summary data from database: %v", err)
 		http.Error(w, message, http.StatusInternalServerError)
@@ -42,7 +43,7 @@ func DisplaySummaryChart(w http.ResponseWriter, database controller.Database) {
 	}
 }
 
-func createDropdownOptions(summaries []controller.Summary) []DropdownOption {
+func createDropdownOptions(summaries []models.Summary) []DropdownOption {
 
 	if len(summaries) == 0 {
 		return []DropdownOption{}

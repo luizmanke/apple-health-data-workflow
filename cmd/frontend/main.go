@@ -1,8 +1,8 @@
 package main
 
 import (
-	"apple-health-data-workflow/internal/controller"
-	"apple-health-data-workflow/internal/webapp"
+	"apple-health-data-workflow/internal/frontend"
+	"apple-health-data-workflow/pkg/database"
 	"log"
 	"net/http"
 	"os"
@@ -10,7 +10,7 @@ import (
 
 func main() {
 
-	database := controller.Database{
+	databaseConfig := database.DatabaseConfig{
 		User:     os.Getenv("WAREHOUSE_USER"),
 		Password: os.Getenv("WAREHOUSE_PASSWORD"),
 		Host:     os.Getenv("WAREHOUSE_HOST"),
@@ -19,7 +19,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		webapp.DisplaySummaryChart(w, database)
+		frontend.DisplaySummaryChart(w, databaseConfig)
 	})
 
 	addr := ":8080"

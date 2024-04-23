@@ -1,8 +1,8 @@
-package webapp_test
+package frontend_test
 
 import (
-	"apple-health-data-workflow/internal/controller"
-	"apple-health-data-workflow/internal/webapp"
+	"apple-health-data-workflow/internal/frontend"
+	"apple-health-data-workflow/pkg/database"
 	"apple-health-data-workflow/pkg/testkit"
 	"io"
 	"net/http"
@@ -13,7 +13,7 @@ import (
 func TestSummaryHandlerMustDisplayDropdownAndLineChart(t *testing.T) {
 
 	responseRecorder := httptest.NewRecorder()
-	dbConfig := controller.Database{
+	databaseConfig := database.DatabaseConfig{
 		User:     "username",
 		Password: "password",
 		Host:     "warehouse",
@@ -21,7 +21,7 @@ func TestSummaryHandlerMustDisplayDropdownAndLineChart(t *testing.T) {
 		Database: "apple_health",
 	}
 
-	webapp.DisplaySummaryChart(responseRecorder, dbConfig)
+	frontend.DisplaySummaryChart(responseRecorder, databaseConfig)
 
 	response := responseRecorder.Result()
 	bodyBytes, err := io.ReadAll(response.Body)

@@ -1,22 +1,24 @@
-package controller
+package storage
 
 import (
+	"apple-health-data-workflow/pkg/models"
 	"encoding/csv"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 )
 
-type Storage struct {
+type StorageConfig struct {
 	Directory string
 }
 
-func ListCSVFiles(storage Storage) ([]string, error) {
+func ListCSVFiles(storageConfig StorageConfig) ([]string, error) {
 	fileNames := []string{}
 
-	directory := storage.Directory
+	directory := storageConfig.Directory
 	if !strings.HasSuffix(directory, "/") {
 		directory = directory + "/"
 	}
@@ -38,9 +40,9 @@ func ListCSVFiles(storage Storage) ([]string, error) {
 	return fileNames, err
 }
 
-func ReadAppleHealthSummaryDataFromCSVFile(storage Storage, fileName string) ([]Summary, error) {
+func ReadAppleHealthSummaryDataFromCSVFile(storageConfig StorageConfig, fileName string) ([]models.Summary, error) {
 
-	filePath := filepath.Join(storage.Directory, fileName)
+	filePath := filepath.Join(storageConfig.Directory, fileName)
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -62,11 +64,11 @@ func ReadAppleHealthSummaryDataFromCSVFile(storage Storage, fileName string) ([]
 	return summaries, nil
 }
 
-func convertCSVRowsToSummaryStructs(csvRows [][]string) ([]Summary, error) {
+func convertCSVRowsToSummaryStructs(csvRows [][]string) ([]models.Summary, error) {
 
 	headers := csvRows[0]
 	rows := csvRows[1:]
-	summaries := []Summary{}
+	summaries := []models.Summary{}
 
 	for _, row := range rows {
 
@@ -75,7 +77,7 @@ func convertCSVRowsToSummaryStructs(csvRows [][]string) ([]Summary, error) {
 			rowMap[headers[i]] = row[i]
 		}
 
-		summary := Summary{}
+		summary := models.Summary{}
 		decoderConfig := &mapstructure.DecoderConfig{Result: &summary, WeaklyTypedInput: true}
 		decoder, err := mapstructure.NewDecoder(decoderConfig)
 		if err != nil {
@@ -83,8 +85,27 @@ func convertCSVRowsToSummaryStructs(csvRows [][]string) ([]Summary, error) {
 		}
 
 		decoder.Decode(rowMap)
+		err = convertTimestampFormat(&summary)
+		if err != nil {
+			return nil, err
+		}
+
 		summaries = append(summaries, summary)
 	}
 
 	return summaries, nil
+}
+
+func convertTimestampFormat(summary *models.Summary) error {
+
+	inputFormat := "1/2/2006 15:04:05"
+	outputFormat := "2006-01-02T15:04:05Z"
+
+	parsedTime, err := time.Parse(inputFormat, summary.Date)
+	if err != nil {
+		return err
+	}
+
+	summary.Date = parsedTime.UTC().Format(outputFormat)
+	return nil
 }

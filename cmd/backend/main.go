@@ -1,23 +1,23 @@
 package main
 
 import (
-	"apple-health-data-workflow/internal/controller"
-	"apple-health-data-workflow/internal/ingester"
-	"apple-health-data-workflow/internal/queue"
-	"apple-health-data-workflow/internal/reader"
+	"apple-health-data-workflow/internal/backend"
+	"apple-health-data-workflow/pkg/database"
+	"apple-health-data-workflow/pkg/queue"
+	"apple-health-data-workflow/pkg/storage"
 	"os"
 )
 
 func main() {
 
-	sourceStorage := controller.Storage{
+	storageConfig := storage.StorageConfig{
 		Directory: os.Getenv("INGESTER_SOURCE_DIRECTORY"),
 	}
 	queueConfig := queue.QueueConfig{
 		Server: os.Getenv("QUEUE_SERVER"),
 		Topic:  os.Getenv("QUEUE_TOPIC"),
 	}
-	destinationDatabase := controller.Database{
+	databaseConfig := database.DatabaseConfig{
 		User:     os.Getenv("INGESTER_DESTINATION_USER"),
 		Password: os.Getenv("INGESTER_DESTINATION_PASSWORD"),
 		Host:     os.Getenv("INGESTER_DESTINATION_HOST"),
@@ -25,6 +25,6 @@ func main() {
 		Database: os.Getenv("INGESTER_DESTINATION_DATABASE"),
 	}
 
-	reader.ReadAppleHealthSummaryDataFromCSVFilesAndSendToQueue(sourceStorage, queueConfig)
-	ingester.ReadAppleHealthSummaryDataFromQueueAndIngestIntoDatabase(queueConfig, destinationDatabase)
+	backend.ReadAppleHealthSummaryDataFromCSVFilesAndSendToQueue(storageConfig, queueConfig)
+	backend.ReadAppleHealthSummaryDataFromQueueAndIngestIntoDatabase(queueConfig, databaseConfig)
 }

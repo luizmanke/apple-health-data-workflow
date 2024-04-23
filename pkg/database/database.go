@@ -1,13 +1,14 @@
-package controller
+package database
 
 import (
+	"apple-health-data-workflow/pkg/models"
 	"database/sql"
 	"fmt"
 
 	"github.com/lib/pq"
 )
 
-type Database struct {
+type DatabaseConfig struct {
 	User     string
 	Password string
 	Host     string
@@ -15,9 +16,9 @@ type Database struct {
 	Database string
 }
 
-func InsertAppleHealthSummaryDataIntoDatabase(database Database, summaries []Summary) error {
+func InsertAppleHealthSummaryDataIntoDatabase(databaseConfig DatabaseConfig, summaries []models.Summary) error {
 
-	dbConn, err := connectToTheDatabase(database)
+	dbConn, err := connectToTheDatabase(databaseConfig)
 	if err != nil {
 		return err
 	}
@@ -32,9 +33,9 @@ func InsertAppleHealthSummaryDataIntoDatabase(database Database, summaries []Sum
 	return err
 }
 
-func GetSummaryDataFromDatabase(database Database) ([]Summary, error) {
+func GetSummaryDataFromDatabase(databaseConfig DatabaseConfig) ([]models.Summary, error) {
 
-	dbConn, err := connectToTheDatabase(database)
+	dbConn, err := connectToTheDatabase(databaseConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -46,10 +47,10 @@ func GetSummaryDataFromDatabase(database Database) ([]Summary, error) {
 	}
 	defer rows.Close()
 
-	summaries := []Summary{}
+	summaries := []models.Summary{}
 	for rows.Next() {
 
-		summary := Summary{}
+		summary := models.Summary{}
 		err := rows.Scan(
 			&summary.Date,
 			&summary.ActiveEnergy,
@@ -193,15 +194,15 @@ func GetSummaryDataFromDatabase(database Database) ([]Summary, error) {
 	return summaries, nil
 }
 
-func connectToTheDatabase(database Database) (*sql.DB, error) {
+func connectToTheDatabase(databaseConfig DatabaseConfig) (*sql.DB, error) {
 
 	dbInfo := fmt.Sprintf(
 		"user=%s password=%s host=%s port=%s dbname=%s sslmode=disable",
-		database.User,
-		database.Password,
-		database.Host,
-		database.Port,
-		database.Database,
+		databaseConfig.User,
+		databaseConfig.Password,
+		databaseConfig.Host,
+		databaseConfig.Port,
+		databaseConfig.Database,
 	)
 
 	dbConn, err := sql.Open("postgres", dbInfo)
